@@ -1,19 +1,16 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useTheme } from 'next-themes';
 import { Button } from './ui/button';
+import { ThemeToggle } from './ThemeToggle';
 import { useWallet } from '../contexts/WalletContext';
-import { Wallet, Shield, Moon, Sun } from 'lucide-react';
+import { Wallet, Shield } from 'lucide-react';
 
 export const Navbar = () => {
   const { address, balance, isConnecting, connect, disconnect } = useWallet();
-  const { theme, setTheme } = useTheme();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
 
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
+
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
@@ -30,33 +27,20 @@ export const Navbar = () => {
           <div className="flex items-center gap-6">
             <Link
               to="/bounties"
-              className={`text-sm font-medium transition-colors hover:text-emerald-600 ${
-                isActive('/bounties') ? 'text-emerald-600' : 'text-muted-foreground'
-              }`}
+              className={`text-sm font-medium transition-colors hover:text-emerald-600 ${isActive('/bounties') ? 'text-emerald-600' : 'text-muted-foreground'
+                }`}
             >
               Browse Bounties
             </Link>
             <Link
               to="/post"
-              className={`text-sm font-medium transition-colors hover:text-emerald-600 ${
-                isActive('/post') ? 'text-emerald-600' : 'text-muted-foreground'
-              }`}
+              className={`text-sm font-medium transition-colors hover:text-emerald-600 ${isActive('/post') ? 'text-emerald-600' : 'text-muted-foreground'
+                }`}
             >
               Post Bounty
             </Link>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="h-9 w-9"
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </Button>
+            <ThemeToggle />
 
             {address ? (
               <div className="flex items-center gap-3">
