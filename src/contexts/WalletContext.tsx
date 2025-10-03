@@ -1,108 +1,119 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import { useWallet as useVeChainWallet, useWalletModal } from '@vechain/vechain-kit';
 import { toast } from 'sonner';
 
 interface WalletContextType {
     address: string | null;
     balance: string | null;
     isConnecting: boolean;
-    connect: () => Promise<void>;
-    disconnect: () => void;
+    isConnected: boolean;
+    connect: () => void;
+    disconnect: () => Promise<void>;
+    openLoginModal: () => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-declare global {
-    interface Window {
-        vechain?: {
-            newConnexSigner: (genesisId: string) => {
-                request: (options: { purpose: string; payload: { type: string; content: string } }) => Promise<{ annex: { address: string } }>;
-            };
-        };
-        connex?: {
-            thor: {
-                genesis: {
-                    id: string;
-                };
-                account: (address: string) => {
-                    get: () => Promise<{ balance: string }>;
-                };
-            };
-        };
-    }
-}
-
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
-    const [address, setAddress] = useState<string | null>(null);
+    const { 
+        account, 
+        connection, 
+        disconnect: veChainDisconnect 
+    } = useVeChainWallet();
+    
+    const { open: openLoginModal } = useWalletModal();
+    
+    // Local state for balance and loading
     const [balance, setBalance] = useState<string | null>(null);
-    const [isConnecting, setIsConnecting] = useState(false);
+    const [balanceLoading, setBalanceLoading] = useState(false);
 
-    useEffect(() => {
-        const storedAddress = localStorage.getItem('walletAddress');
-        if (storedAddress) {
-            setAddress(storedAddress);
-            fetchBalance(storedAddress);
-        }
-    }, []);
+    // Derived values from VeChain Kit
+    const address = account?.address || null;
+    const isConnected = connection.isConnected;
+    const isConnecting = connection.isLoading;
 
+    // Fetch balance function using VeChain testnet API
     const fetchBalance = async (addr: string) => {
+        if (!addr) return;
+        
+        setBalanceLoading(true);
         try {
-            if (window.connex) {
-                const account = await window.connex.thor.account(addr).get();
-                const balanceInVET = (parseInt(account.balance, 16) / 1e18).toFixed(2);
-                setBalance(balanceInVET);
-            } else {
-                setBalance('1000.00');
+            const response = await fetch(`https://testnet.vechain.org/accounts/${addr}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch account data');
             }
+            const accountInfo = await response.json();
+            const balanceInVET = (BigInt(accountInfo.balance) / BigInt(1e18)).toString();
+            const decimalPart = (BigInt(accountInfo.balance) % BigInt(1e18)).toString().padStart(18, '0');
+            const formattedBalance = `${balanceInVET}.${decimalPart.slice(0, 4)}`;
+            setBalance(parseFloat(formattedBalance).toFixed(4));
         } catch (error) {
             console.error('Failed to fetch balance:', error);
-            setBalance('0.00');
-        }
-    };
-
-    const connect = async () => {
-        setIsConnecting(true);
-        try {
-            if (window.vechain) {
-                const genesisId = window.connex?.thor.genesis.id || '0x00000000851caf3cfdb6e899cf5958bfb1ac3413d346d43539627e6be7ec1b4a';
-                const signer = window.vechain.newConnexSigner(genesisId);
-
-                const result = await signer.request({
-                    purpose: 'identification',
-                    payload: {
-                        type: 'text',
-                        content: 'Connect to Proof-of-Relief Donation Board'
-                    }
-                });
-
-                const walletAddress = result.annex.address;
-                setAddress(walletAddress);
-                localStorage.setItem('walletAddress', walletAddress);
-                await fetchBalance(walletAddress);
-                toast.success('Wallet connected successfully!');
-            } else {
-                const mockAddress = '0x' + Math.random().toString(16).substring(2, 42);
-                setAddress(mockAddress);
-                setBalance('1000.00');
-                localStorage.setItem('walletAddress', mockAddress);
-                toast.info('Demo mode: Mock wallet connected');
-            }
-        } catch (error) {
-            console.error('Failed to connect wallet:', error);
-            toast.error('Failed to connect wallet');
+            setBalance('0.0000');
         } finally {
-            setIsConnecting(false);
+            setBalanceLoading(false);
         }
     };
 
-    const disconnect = () => {
-        setAddress(null);
-        setBalance(null);
-        localStorage.removeItem('walletAddress');
-        toast.success('Wallet disconnected');
+    // Handle account changes and show notifications
+    useEffect(() => {
+        if (account?.address && connection.isConnected) {
+            toast.success('Wallet connected successfully!');
+            fetchBalance(account.address);
+        } else {
+            setBalance(null);
+        }
+    }, [account?.address, connection.isConnected]);
+
+    // Fetch balance periodically for real-time updates
+    useEffect(() => {
+        if (!address || !isConnected) return;
+
+        const interval = setInterval(() => {
+            fetchBalance(address);
+        }, 10000); // Update every 10 seconds
+
+        return () => clearInterval(interval);
+    }, [address, isConnected]);
+
+    // Listen for account switching
+    useEffect(() => {
+        if (account?.address) {
+            const prevAddress = localStorage.getItem('prevWalletAddress');
+            if (prevAddress && prevAddress !== account.address) {
+                toast.info('Account switched successfully');
+            }
+            localStorage.setItem('prevWalletAddress', account.address);
+        }
+    }, [account?.address]);
+
+    const connect = () => {
+        openLoginModal();
+    };
+
+    const disconnect = async () => {
+        try {
+            await veChainDisconnect();
+            localStorage.removeItem('prevWalletAddress');
+            toast.success('Wallet disconnected');
+        } catch (error) {
+            console.error('Failed to disconnect wallet:', error);
+            toast.error('Failed to disconnect wallet');
+        }
     };
 
     return (
-        <WalletContext.Provider value={{ address, balance, isConnecting, connect, disconnect }}>
+        <WalletContext.Provider 
+            value={{ 
+                address, 
+                balance, 
+                isConnecting: isConnecting || balanceLoading, 
+                isConnected,
+                connect, 
+                disconnect,
+                openLoginModal
+            }}
+        >
             {children}
         </WalletContext.Provider>
     );

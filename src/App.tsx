@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/ThemeProvider';
+import { VeChainKitProviderWrapper } from './providers/VeChainKitProvider';
 import { WalletProvider } from './contexts/WalletContext';
 import { Toaster } from './components/ui/sonner';
 import { Navbar } from './components/Navbar';
@@ -12,20 +13,22 @@ import './App.css';
 function App() {
   return (
     <ThemeProvider>
-      <WalletProvider>
-        <Router>
-          <div className="min-h-screen bg-background">
-            <Navbar />
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/bounties" element={<BountyBoardPage />} />
-              <Route path="/post" element={<PostBountyPage />} />
-              <Route path="/bounty/:id" element={<BountyDetailPage />} />
-            </Routes>
-            <Toaster />
-          </div>
-        </Router>
-      </WalletProvider>
+      <VeChainKitProviderWrapper>
+        <WalletProvider>
+          <Router>
+            <div className="min-h-screen bg-background">
+              <Navbar />
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/bounties" element={<BountyBoardPage />} />
+                <Route path="/post" element={<PostBountyPage />} />
+                <Route path="/bounty/:id" element={<BountyDetailPage />} />
+              </Routes>
+              <Toaster />
+            </div>
+          </Router>
+        </WalletProvider>
+      </VeChainKitProviderWrapper>
     </ThemeProvider>
   );
 }

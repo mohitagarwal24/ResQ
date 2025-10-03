@@ -79,7 +79,7 @@ export const BountyDetailPage = () => {
         bountyId: bounty.id,
         donorAddress: address,
         amount: amount,
-        transactionHash: txHash
+        transactionHash: Array.isArray(txHash) ? txHash[0]?.comment || 'Transaction processed' : txHash
       });
 
       setDonationAmount('');

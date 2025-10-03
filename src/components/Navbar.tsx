@@ -2,13 +2,24 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
 import { ThemeToggle } from './ThemeToggle';
 import { useWallet } from '../contexts/WalletContext';
-import { Wallet, Shield } from 'lucide-react';
+import { Wallet, Shield, RefreshCw, LogOut } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 export const Navbar = () => {
-  const { address, balance, isConnecting, connect, disconnect } = useWallet();
+  const { address, balance, isConnecting, isConnected, connect, disconnect, openLoginModal } = useWallet();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const formatBalance = (bal: string | null) => {
+    if (!bal) return '0.0000';
+    const num = parseFloat(bal);
+    return num.toFixed(4);
+  };
+
+  const formatAddress = (addr: string) => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
 
 
 
@@ -42,26 +53,50 @@ export const Navbar = () => {
 
             <ThemeToggle />
 
-            {address ? (
+            {isConnected && address ? (
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <div className="text-xs text-muted-foreground">Balance</div>
-                  <div className="text-sm font-semibold">{balance} VET</div>
+                  <div className="text-xs text-muted-foreground">Balance (Testnet)</div>
+                  <div className="text-sm font-semibold flex items-center gap-1">
+                    {isConnecting ? (
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                    ) : null}
+                    {formatBalance(balance)} VET
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={disconnect}
-                  className="font-mono text-xs"
-                >
-                  {address.slice(0, 6)}...{address.slice(-4)}
-                </Button>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="font-mono text-xs hover:bg-emerald-50 hover:border-emerald-200"
+                    >
+                      <Wallet className="h-3 w-3 mr-2" />
+                      {formatAddress(address)}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-2 py-1.5">
+                      <div className="text-xs text-muted-foreground">Connected Account</div>
+                      <div className="font-mono text-xs break-all">{address}</div>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={openLoginModal} className="cursor-pointer">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Switch Account
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={disconnect} className="cursor-pointer text-red-600">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Disconnect
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Button
                 onClick={connect}
                 disabled={isConnecting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <Wallet className="h-4 w-4 mr-2" />
                 {isConnecting ? 'Connecting...' : 'Connect Wallet'}

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Shield, Heart, Eye, CircleCheck as CheckCircle2, ArrowRight } from 'lucide-react';
+import { DebugInfo } from '../components/DebugInfo';
 
 export const LandingPage = () => {
   return (
@@ -20,13 +21,13 @@ export const LandingPage = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/bounties">
-              <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8">
+              <Button size="lg" className="px-8">
                 Browse Bounties
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link to="/post">
-              <Button size="lg" variant="outline" className="border-2 hover:border-emerald-600 px-8">
+              <Button size="lg" variant="outline" className="border-2 px-8">
                 Post a Bounty
               </Button>
             </Link>
@@ -34,7 +35,7 @@ export const LandingPage = () => {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-16">
-          <Card className="border-2 hover:border-emerald-200 transition-colors">
+          <Card className="border-2 hover:border-primary/20 transition-colors">
             <CardHeader>
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-4">
                 <Heart className="h-6 w-6 text-blue-600" />
@@ -46,10 +47,10 @@ export const LandingPage = () => {
             </CardHeader>
           </Card>
 
-          <Card className="border-2 hover:border-emerald-200 transition-colors">
+          <Card className="border-2 hover:border-primary/20 transition-colors">
             <CardHeader>
-              <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-4">
-                <Shield className="h-6 w-6 text-emerald-600" />
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                <Shield className="h-6 w-6 text-primary" />
               </div>
               <CardTitle>Transparent Escrow</CardTitle>
               <CardDescription>
@@ -58,7 +59,7 @@ export const LandingPage = () => {
             </CardHeader>
           </Card>
 
-          <Card className="border-2 hover:border-emerald-200 transition-colors">
+          <Card className="border-2 hover:border-primary/20 transition-colors">
             <CardHeader>
               <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mb-4">
                 <Eye className="h-6 w-6 text-amber-600" />
@@ -122,6 +123,9 @@ export const LandingPage = () => {
             Leveraging VeChain's enterprise-grade blockchain for transparent, secure, and efficient disaster relief funding.
           </p>
         </div>
+
+        {/* Debug Information - Remove in production */}
+        <DebugInfo />
       </div>
     </div>
   );

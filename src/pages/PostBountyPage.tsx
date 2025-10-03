@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
 import { useBountyStore } from '../store/bountyStore';
-import { contractService } from '../services/contractService';
+import { useContractTransactions } from '../hooks/useContractTransactions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -16,8 +16,7 @@ export const PostBountyPage = () => {
   const navigate = useNavigate();
   const { address } = useWallet();
   const { addBounty } = useBountyStore();
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { createBounty, isTransactionPending, status } = useContractTransactions();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -53,21 +52,17 @@ export const PostBountyPage = () => {
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      await contractService.createBounty(
-        {
-          title: formData.title,
-          description: formData.description,
-          goal: goalAmount,
-          location: formData.location,
-          organizerName: formData.organizerName,
-          imageUrl: formData.imageUrl || undefined
-        },
-        address
-      );
+      await createBounty({
+        title: formData.title,
+        description: formData.description,
+        goal: goalAmount,
+        location: formData.location,
+        organizerName: formData.organizerName,
+        imageUrl: formData.imageUrl || undefined
+      });
 
+      // Add to local store for immediate UI update
       addBounty({
         title: formData.title,
         description: formData.description,
@@ -78,12 +73,12 @@ export const PostBountyPage = () => {
         imageUrl: formData.imageUrl || undefined
       });
 
-      navigate('/bounties');
+      if (status === 'success') {
+        navigate('/bounties');
+      }
     } catch (error) {
       console.error('Failed to create bounty:', error);
-      toast.error('Failed to create bounty');
-    } finally {
-      setIsSubmitting(false);
+      // Error handling is done in the hook
     }
   };
 
@@ -126,7 +121,7 @@ export const PostBountyPage = () => {
                     placeholder="e.g., Water Filters for Kerala Floods"
                     value={formData.title}
                     onChange={handleChange}
-                    disabled={isSubmitting}
+                    disabled={isTransactionPending}
                     className="border-2"
                   />
                 </div>
@@ -141,7 +136,7 @@ export const PostBountyPage = () => {
                     placeholder="Detailed description of the relief effort, what the funds will be used for, and expected impact..."
                     value={formData.description}
                     onChange={handleChange}
-                    disabled={isSubmitting}
+                    disabled={isTransactionPending}
                     rows={6}
                     className="border-2"
                   />
@@ -160,7 +155,7 @@ export const PostBountyPage = () => {
                       placeholder="5000"
                       value={formData.goalAmount}
                       onChange={handleChange}
-                      disabled={isSubmitting}
+                      disabled={isTransactionPending}
                       className="border-2"
                     />
                   </div>
@@ -175,7 +170,7 @@ export const PostBountyPage = () => {
                       placeholder="e.g., Kerala, India"
                       value={formData.location}
                       onChange={handleChange}
-                      disabled={isSubmitting}
+                      disabled={isTransactionPending}
                       className="border-2"
                     />
                   </div>
@@ -191,7 +186,7 @@ export const PostBountyPage = () => {
                     placeholder="e.g., Kerala Relief Foundation"
                     value={formData.organizerName}
                     onChange={handleChange}
-                    disabled={isSubmitting}
+                    disabled={isTransactionPending}
                     className="border-2"
                   />
                 </div>
@@ -205,7 +200,7 @@ export const PostBountyPage = () => {
                     placeholder="https://example.com/image.jpg"
                     value={formData.imageUrl}
                     onChange={handleChange}
-                    disabled={isSubmitting}
+                    disabled={isTransactionPending}
                     className="border-2"
                   />
                   <p className="text-xs text-slate-500">
@@ -215,10 +210,10 @@ export const PostBountyPage = () => {
 
                 <Button
                   type="submit"
-                  disabled={isSubmitting || !address}
+                  disabled={isTransactionPending || !address}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-12"
                 >
-                  {isSubmitting ? (
+                  {isTransactionPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Creating Bounty...

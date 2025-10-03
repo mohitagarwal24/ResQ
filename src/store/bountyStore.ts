@@ -4,11 +4,16 @@ import { Bounty, Donation } from '../types/bounty';
 interface BountyStore {
   bounties: Bounty[];
   donations: Donation[];
+  contractBounties: Bounty[];
+  useContractData: boolean;
+  setContractBounties: (bounties: Bounty[]) => void;
+  setUseContractData: (use: boolean) => void;
   addBounty: (bounty: Omit<Bounty, 'id' | 'createdAt' | 'updatedAt' | 'currentAmount' | 'status'>) => void;
   updateBounty: (id: string, updates: Partial<Bounty>) => void;
   addDonation: (donation: Omit<Donation, 'id' | 'createdAt'>) => void;
   getBountyById: (id: string) => Bounty | undefined;
   getDonationsByBountyId: (bountyId: string) => Donation[];
+  getAllBounties: () => Bounty[];
 }
 
 const mockBounties: Bounty[] = [
@@ -117,6 +122,23 @@ const mockDonations: Donation[] = [
 export const useBountyStore = create<BountyStore>((set, get) => ({
   bounties: mockBounties,
   donations: mockDonations,
+  contractBounties: [],
+  useContractData: false,
+
+  setContractBounties: (bounties) => {
+    set({ contractBounties: bounties, useContractData: true });
+  },
+
+  setUseContractData: (use) => {
+    set({ useContractData: use });
+  },
+
+  getAllBounties: () => {
+    const state = get();
+    return state.useContractData && state.contractBounties.length > 0 
+      ? state.contractBounties 
+      : state.bounties;
+  },
 
   addBounty: (bounty) => {
     const newBounty: Bounty = {
@@ -134,6 +156,9 @@ export const useBountyStore = create<BountyStore>((set, get) => ({
     set((state) => ({
       bounties: state.bounties.map((bounty) =>
         bounty.id === id ? { ...bounty, ...updates, updatedAt: new Date() } : bounty
+      ),
+      contractBounties: state.contractBounties.map((bounty) =>
+        bounty.id === id ? { ...bounty, ...updates, updatedAt: new Date() } : bounty
       )
     }));
   },
@@ -146,7 +171,8 @@ export const useBountyStore = create<BountyStore>((set, get) => ({
     };
     set((state) => ({ donations: [...state.donations, newDonation] }));
 
-    const bounty = get().bounties.find((b) => b.id === donation.bountyId);
+    const allBounties = get().getAllBounties();
+    const bounty = allBounties.find((b) => b.id === donation.bountyId);
     if (bounty) {
       get().updateBounty(donation.bountyId, {
         currentAmount: bounty.currentAmount + donation.amount
@@ -155,7 +181,8 @@ export const useBountyStore = create<BountyStore>((set, get) => ({
   },
 
   getBountyById: (id) => {
-    return get().bounties.find((bounty) => bounty.id === id);
+    const allBounties = get().getAllBounties();
+    return allBounties.find((bounty) => bounty.id === id);
   },
 
   getDonationsByBountyId: (bountyId) => {
