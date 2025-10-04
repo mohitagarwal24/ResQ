@@ -33,18 +33,31 @@ export const BountyCard = ({ bounty }: BountyCardProps) => {
     }
   };
 
+  const isCompleted = bounty.status === 'Completed';
+  
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow border-2 hover:border-emerald-200 flex flex-col h-full">
-      <div className="aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden">
+    <Card className={`overflow-hidden hover:shadow-lg transition-shadow border-2 hover:border-emerald-200 flex flex-col h-full ${
+      isCompleted ? 'opacity-90 bg-emerald-50 border-emerald-200' : ''
+    }`}>
+      <div className="aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
         {bounty.imageUrl ? (
           <img
             src={bounty.imageUrl}
             alt={bounty.title}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            className={`w-full h-full object-cover hover:scale-105 transition-transform duration-300 ${
+              isCompleted ? 'opacity-75' : ''
+            }`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
             <MapPin className="h-16 w-16" />
+          </div>
+        )}
+        {isCompleted && (
+          <div className="absolute inset-0 bg-emerald-500 bg-opacity-20 flex items-center justify-center">
+            <div className="bg-emerald-600 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+              ✓ Completed
+            </div>
           </div>
         )}
       </div>

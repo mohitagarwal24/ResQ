@@ -1,97 +1,64 @@
+import { ContractStatus } from '../components/ContractStatus';
 import { VeChainIntegration } from '../components/VeChainIntegration';
-import { BountyList } from '../components/BountyList';
 import { TransactionDebugger } from '../components/TransactionDebugger';
-import { useWallet } from '../contexts/WalletContext';
+import { DonationHistoryTest } from '../components/DonationHistoryTest';
+import { DonationTest } from '../components/DonationTest';
+import { ProofSubmissionTest } from '../components/ProofSubmissionTest';
+import { BountyList } from '../components/BountyList';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { Wallet, AlertCircle, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 export const VeChainTestPage = () => {
-  const { address, balance, isConnected, connect, disconnect } = useWallet();
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="container mx-auto px-4 py-12">
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* Header */}
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-foreground mb-4">
-              VeChain Kit v2 Integration Test
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Complete blockchain integration with real contract interactions
-            </p>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-foreground mb-2">VeChain Integration Test</h1>
+          <p className="text-muted-foreground">
+            Test and debug VeChain Kit v2 integration with real blockchain interactions
+          </p>
+        </div>
 
-          {/* Wallet Connection Status */}
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wallet className="h-5 w-5" />
-                Wallet Connection
-              </CardTitle>
-              <CardDescription>
-                Connect your VeChain wallet to interact with the blockchain
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!isConnected ? (
-                <Alert className="border-amber-200 bg-amber-50">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-amber-800">
-                    Please connect your wallet to test the VeChain integration
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <Alert className="border-green-200 bg-green-50">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800">
-                    Wallet connected successfully! You can now interact with the blockchain.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  {address && (
-                    <>
-                      <p className="text-sm font-medium">Address:</p>
-                      <p className="text-sm font-mono bg-gray-100 p-2 rounded">
-                        {address}
-                      </p>
-                    </>
-                  )}
-                  {balance && (
-                    <>
-                      <p className="text-sm font-medium">Balance:</p>
-                      <p className="text-sm font-mono bg-gray-100 p-2 rounded">
-                        {balance} VET
-                      </p>
-                    </>
-                  )}
-                </div>
-                
-                <div className="flex gap-2">
-                  {!isConnected ? (
-                    <Button onClick={connect} className="bg-emerald-600 hover:bg-emerald-700">
-                      Connect Wallet
-                    </Button>
-                  ) : (
-                    <Button onClick={disconnect} variant="outline">
-                      Disconnect
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="space-y-8">
+          {/* Contract Status */}
+          <ContractStatus />
 
           {/* Transaction Debugger */}
-          <TransactionDebugger />
+          <div className="grid lg:grid-cols-2 gap-8">
+            <VeChainIntegration />
+            <TransactionDebugger />
+          </div>
 
-          {/* VeChain Integration Component */}
-          <VeChainIntegration />
+          {/* Donation History Test */}
+          <DonationHistoryTest />
+
+          {/* Test Components */}
+          <div className="grid lg:grid-cols-2 gap-8">
+            <Card className="border-2">
+              <CardHeader>
+                <CardTitle>Donation Test</CardTitle>
+                <CardDescription>
+                  Test donation functionality
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DonationTest />
+              </CardContent>
+            </Card>
+
+            <Card className="border-2">
+              <CardHeader>
+                <CardTitle>Proof Submission Test</CardTitle>
+                <CardDescription>
+                  Test proof submission with IPFS
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProofSubmissionTest />
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Live Bounties */}
           <Card className="border-2">
@@ -151,6 +118,10 @@ export const VeChainTestPage = () => {
                       <CheckCircle className="h-4 w-4 text-green-600" />
                       Real IPFS Integration (Pinata/Web3.Storage)
                     </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Real Donation History from Events
+                    </li>
                   </ul>
                 </div>
 
@@ -159,6 +130,7 @@ export const VeChainTestPage = () => {
                   <ul className="space-y-2 text-sm">
                     <li>• VeChain Kit v2 (@vechain/vechain-kit)</li>
                     <li>• VeChain SDK Core (@vechain/sdk-core)</li>
+                    <li>• VeChain Energy API for events</li>
                     <li>• React Query for state management</li>
                     <li>• Custom hooks for contract interactions</li>
                     <li>• Real-time blockchain data fetching</li>

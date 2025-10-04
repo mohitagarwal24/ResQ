@@ -13,28 +13,26 @@ interface BountyListProps {
 }
 
 export const BountyList = ({ showDonateButton = true }: BountyListProps) => {
-  const { 
-    bounties,
-    setBounties
-  } = useBountyStore();
+  const { setBounties } = useBountyStore();
   
   const { bounties: contractBounties, loading, error, refetch } = useContractBounties();
   const { donate, isTransactionPending } = useContractTransactions();
 
-  // Update store with contract data when available
+  // Always update store with contract data (even if empty)
   useEffect(() => {
-    if (contractBounties.length > 0) {
-      setBounties(contractBounties);
-    }
+    setBounties(contractBounties);
+    console.log(`BountyList: Updated with ${contractBounties.length} bounties from contract`);
   }, [contractBounties, setBounties]);
+
+  // Use contract bounties directly for display
+  const bounties = contractBounties;
 
   const handleDonate = async (bountyId: string, amount: number) => {
     try {
       await donate({ bountyId, amount });
       // Refetch bounties after successful donation
-      if (contractBounties.length > 0) {
-        refetch();
-      }
+      console.log('Donation completed, refreshing bounties...');
+      refetch();
     } catch (error) {
       console.error('Donation failed:', error);
     }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CONTRACT_CONFIG } from '../config/contract';
+import { contractReadService } from '../services/contractReadService';
 import { Bounty } from '../types/bounty';
 
 // Hook for reading all bounties from the deployed contract using VeChain Thor API
@@ -13,78 +13,46 @@ export const useContractBounties = () => {
     setError(null);
 
     try {
-      // Use VeChain Thor API to call the contract
-      const response = await fetch('https://testnet.vechain.org/accounts/' + CONTRACT_CONFIG.address, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clauses: [{
-            to: CONTRACT_CONFIG.address,
-            value: '0x0',
-            data: '0x78bd7935' // getAllBounties() function selector
-          }]
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch bounties from contract');
-      }
-
-      const result = await response.json();
+      console.log('Fetching bounties from deployed contract...');
       
-      if (result.reverted) {
-        throw new Error('Contract call reverted');
-      }
-
-      // For now, since contract reading is complex, let's provide some sample data
-      // This will be replaced with real contract data once ABI decoding is implemented
-      const sampleBounties: Bounty[] = [
-        {
-          id: '1',
-          title: 'Emergency Water Supplies - Flood Relief',
-          description: 'Providing clean water access to 200 families affected by recent floods. Funds will be used to purchase and distribute water purification tablets and portable filters.',
-          goalAmount: 2500,
-          currentAmount: 1800,
-          location: 'Kerala, India',
-          organizerAddress: CONTRACT_CONFIG.address,
-          organizerName: 'Kerala Relief Foundation',
-          imageUrl: 'https://images.pexels.com/photos/2850287/pexels-photo-2850287.jpeg?auto=compress&cs=tinysrgb&w=800',
-          status: 'Open',
-          createdAt: new Date('2024-01-15'),
-          updatedAt: new Date('2024-01-20')
-        },
-        {
-          id: '2',
-          title: 'Medical Supplies - Earthquake Response',
-          description: 'Urgent medical supplies needed for earthquake victims. Funds will purchase first aid kits, medicines, and emergency medical equipment.',
-          goalAmount: 5000,
-          currentAmount: 3200,
-          location: 'Turkey',
-          organizerAddress: CONTRACT_CONFIG.address,
-          organizerName: 'International Red Cross',
-          imageUrl: 'https://images.pexels.com/photos/263402/pexels-photo-263402.jpeg?auto=compress&cs=tinysrgb&w=800',
-          status: 'Open',
-          createdAt: new Date('2024-01-10'),
-          updatedAt: new Date('2024-01-18')
-        }
-      ];
+      // Get real bounties from the contract
+      const contractBounties = await contractReadService.getAllBounties();
       
-      setBounties(sampleBounties);
-      console.log('Loaded sample bounties for testing. Real contract integration pending.');
+      setBounties(contractBounties);
+      console.log(`Successfully loaded ${contractBounties.length} bounties from contract`);
     } catch (err) {
-      console.error('Error fetching bounties:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch bounties');
+      console.error('Error fetching bounties from contract:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch bounties from contract');
+      
+      // Fallback to empty array on error
       setBounties([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Auto-fetch on mount
+  // Auto-fetch on mount and when contract data changes
   useEffect(() => {
     fetchBounties();
+    
+    // Listen for contract data changes (after transactions) with debounce
+    let refreshTimeout: NodeJS.Timeout;
+    const handleDataChange = () => {
+      // Clear any existing timeout
+      clearTimeout(refreshTimeout);
+      // Debounce the refresh to avoid multiple rapid calls
+      refreshTimeout = setTimeout(() => {
+        console.log('Contract data changed, refreshing bounties...');
+        fetchBounties();
+      }, 1000); // Wait 1 second before refreshing
+    };
+    
+    window.addEventListener('contractDataChanged', handleDataChange);
+    
+    return () => {
+      window.removeEventListener('contractDataChanged', handleDataChange);
+      clearTimeout(refreshTimeout);
+    };
   }, [fetchBounties]);
 
   return {
@@ -110,25 +78,53 @@ export const useContractBounty = (bountyId: string | null) => {
     setError(null);
 
     try {
-      // For now, we'll fetch from the bounties list since individual bounty fetching
-      // requires the same contract reading approach
-      // This will be implemented when we have proper ABI decoding
-      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
-      setBounty(null); // Will be implemented with proper contract calls
+      console.log(`Fetching bounty ${bountyId} from deployed contract...`);
+      
+      // Get real bounty from the contract
+      const contractBounty = await contractReadService.getBounty(bountyId);
+      
+      setBounty(contractBounty);
+      
+      if (contractBounty) {
+        console.log(`Successfully loaded bounty ${bountyId} from contract`);
+      } else {
+        console.log(`Bounty ${bountyId} not found in contract`);
+      }
     } catch (err) {
-      console.error('Error fetching bounty:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch bounty');
+      console.error(`Error fetching bounty ${bountyId} from contract:`, err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch bounty from contract');
       setBounty(null);
     } finally {
       setLoading(false);
     }
   }, [bountyId]);
 
-  // Auto-fetch when bountyId changes
+  // Auto-fetch when bountyId changes and when contract data changes
   useEffect(() => {
     if (bountyId) {
       fetchBounty();
     }
+    
+    // Listen for contract data changes (after transactions) with debounce
+    let refreshTimeout: NodeJS.Timeout;
+    const handleDataChange = () => {
+      if (bountyId) {
+        // Clear any existing timeout
+        clearTimeout(refreshTimeout);
+        // Debounce the refresh to avoid multiple rapid calls
+        refreshTimeout = setTimeout(() => {
+          console.log(`Contract data changed, refreshing bounty ${bountyId}...`);
+          fetchBounty();
+        }, 1000); // Wait 1 second before refreshing
+      }
+    };
+    
+    window.addEventListener('contractDataChanged', handleDataChange);
+    
+    return () => {
+      window.removeEventListener('contractDataChanged', handleDataChange);
+      clearTimeout(refreshTimeout);
+    };
   }, [fetchBounty, bountyId]);
 
   return {

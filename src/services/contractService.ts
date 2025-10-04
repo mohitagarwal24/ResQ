@@ -98,7 +98,7 @@ class ContractService {
     const contractInterface = new Interface([submitProofABI]);
     const functionData = contractInterface.encodeFunctionData(
       'submitProof',
-      [params.bountyId, params.ipfsHash] // Keep bountyId as string
+      [BigInt(params.bountyId), params.ipfsHash] // Convert bountyId to BigInt
     );
     
     return [{
@@ -121,7 +121,7 @@ class ContractService {
     const contractInterface = new Interface([releaseFundsABI]);
     const functionData = contractInterface.encodeFunctionData(
       'releaseFunds',
-      [bountyId, verified] // Keep bountyId as string
+      [BigInt(bountyId), verified] // Convert bountyId to BigInt
     );
     
     return [{

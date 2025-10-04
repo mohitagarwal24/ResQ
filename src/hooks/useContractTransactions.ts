@@ -36,9 +36,12 @@ export const useContractTransactions = () => {
   } = useSendTransaction({
     signerAccountAddress: account?.address ?? '',
     onTxConfirmed: () => {
-      toast.success('Transaction confirmed successfully!');
+      // Only emit data refresh event, let components handle their own success messages
+      console.log('Transaction confirmed, refreshing contract data...');
+      window.dispatchEvent(new CustomEvent('contractDataChanged'));
     },
     onTxFailedOrCancelled: () => {
+      console.log('Transaction failed or was cancelled');
       toast.error('Transaction failed or was cancelled');
     },
   });

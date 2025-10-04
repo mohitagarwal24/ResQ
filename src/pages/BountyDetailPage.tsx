@@ -1,9 +1,12 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
-import { useBountyStore } from '../store/bountyStore';
-import { contractService } from '../services/contractService';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { useContractBounty } from '../hooks/useContractRead';
+import { useContractTransactions } from '../hooks/useContractTransactions';
+import { DonationHistory } from '../components/DonationHistory';
+import { ProofVerification } from '../components/ProofVerification';
+import { AutoFundRelease } from '../components/AutoFundRelease';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -18,25 +21,50 @@ export const BountyDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { address } = useWallet();
-  const { getBountyById, getDonationsByBountyId, addDonation, updateBounty } = useBountyStore();
+  const { bounty, loading, error, refetch } = useContractBounty(id || null);
+  const { donate, submitProof } = useContractTransactions();
 
-  const bounty = getBountyById(id || '');
-  const donations = getDonationsByBountyId(id || '');
+  // Donations are now loaded from blockchain events via DonationHistory component
+
+  console.log(`BountyDetailPage: Loading bounty ${id} from contract...`);
 
   const [donationAmount, setDonationAmount] = useState('');
   const [isDonating, setIsDonating] = useState(false);
   const [isSubmittingProof, setIsSubmittingProof] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!bounty) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Bounty not found</h2>
-          <Button onClick={() => navigate('/bounties')} variant="outline">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Bounties
-          </Button>
+          <Loader2 className="h-8 w-8 animate-spin text-slate-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-900">Loading bounty from contract...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !bounty) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">
+            {error ? 'Error loading bounty' : 'Bounty not found'}
+          </h2>
+          {error && (
+            <p className="text-red-600 mb-4">{error}</p>
+          )}
+          <div className="space-x-2">
+            <Button onClick={() => navigate('/bounties')} variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Bounties
+            </Button>
+            {error && (
+              <Button onClick={refetch} variant="default">
+                Retry
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -73,16 +101,10 @@ export const BountyDetailPage = () => {
     setIsDonating(true);
 
     try {
-      const txHash = await contractService.donate({ bountyId: bounty.id, amount }, address);
-
-      addDonation({
-        bountyId: bounty.id,
-        donorAddress: address,
-        amount: amount,
-        transactionHash: Array.isArray(txHash) ? txHash[0]?.comment || 'Transaction processed' : txHash
-      });
-
+      await donate({ bountyId: bounty.id, amount });
       setDonationAmount('');
+      // Don't manually refetch - the contractDataChanged event will handle it
+      toast.success('Donation successful!');
     } catch (error) {
       console.error('Failed to donate:', error);
       toast.error('Failed to process donation');
@@ -98,13 +120,9 @@ export const BountyDetailPage = () => {
     setIsSubmittingProof(true);
 
     try {
-      const ipfsHash = await contractService.uploadToIPFS(file);
-      await contractService.submitProof({ bountyId: bounty.id, ipfsHash }, address);
-
-      updateBounty(bounty.id, {
-        status: 'ProofPending',
-        proofIpfsHash: ipfsHash
-      });
+      await submitProof({ bountyId: bounty.id, proofFile: file });
+      // Don't manually refetch - the contractDataChanged event will handle it
+      toast.success('Proof submitted successfully!');
     } catch (error) {
       console.error('Failed to submit proof:', error);
       toast.error('Failed to submit proof');
@@ -207,40 +225,20 @@ export const BountyDetailPage = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle>Donation History</CardTitle>
-                <CardDescription>
-                  {donations.length} donation{donations.length !== 1 ? 's' : ''} received
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {donations.length === 0 ? (
-                  <p className="text-slate-500 text-center py-8">No donations yet. Be the first to contribute!</p>
-                ) : (
-                  <div className="space-y-3">
-                    {donations.map((donation) => (
-                      <div
-                        key={donation.id}
-                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
-                      >
-                        <div>
-                          <div className="font-mono text-sm text-slate-900">
-                            {donation.donorAddress.slice(0, 10)}...{donation.donorAddress.slice(-8)}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {new Date(donation.createdAt).toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-emerald-600">{donation.amount} VET</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Proof Verification Component (for organizers when proof is pending) */}
+            <ProofVerification 
+              bounty={bounty} 
+              onVerificationComplete={refetch}
+            />
+
+            {/* Auto Fund Release Component (when goal is reached) */}
+            <AutoFundRelease 
+              bounty={bounty} 
+              onFundRelease={refetch}
+            />
+
+            {/* Real Donation History from Blockchain */}
+            <DonationHistory bountyId={bounty.id} />
           </div>
 
           <div className="space-y-6">
