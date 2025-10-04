@@ -9,6 +9,7 @@ import { BountyBoardPage } from './pages/BountyBoardPage';
 import { PostBountyPage } from './pages/PostBountyPage';
 import { BountyDetailPage } from './pages/BountyDetailPage';
 import './App.css';
+import { VeChainTestPage } from './pages/VeChainTestPage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
                 <Route path="/bounties" element={<BountyBoardPage />} />
                 <Route path="/post" element={<PostBountyPage />} />
                 <Route path="/bounty/:id" element={<BountyDetailPage />} />
+                <Route path="/test" element={<VeChainTestPage/>} />
               </Routes>
               <Toaster />
             </div>

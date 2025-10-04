@@ -14,9 +14,8 @@ interface BountyListProps {
 
 export const BountyList = ({ showDonateButton = true }: BountyListProps) => {
   const { 
-    getAllBounties, 
-    setContractBounties, 
-    setUseContractData 
+    bounties,
+    setBounties
   } = useBountyStore();
   
   const { bounties: contractBounties, loading, error, refetch } = useContractBounties();
@@ -25,14 +24,9 @@ export const BountyList = ({ showDonateButton = true }: BountyListProps) => {
   // Update store with contract data when available
   useEffect(() => {
     if (contractBounties.length > 0) {
-      setContractBounties(contractBounties);
-    } else {
-      setUseContractData(false);
+      setBounties(contractBounties);
     }
-  }, [contractBounties, setContractBounties, setUseContractData]);
-
-  // Get bounties from store (which now handles contract vs mock data)
-  const bounties = getAllBounties();
+  }, [contractBounties, setBounties]);
 
   const handleDonate = async (bountyId: string, amount: number) => {
     try {

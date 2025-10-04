@@ -1,5 +1,6 @@
 import { VeChainIntegration } from '../components/VeChainIntegration';
 import { BountyList } from '../components/BountyList';
+import { TransactionDebugger } from '../components/TransactionDebugger';
 import { useWallet } from '../contexts/WalletContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -85,6 +86,9 @@ export const VeChainTestPage = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Transaction Debugger */}
+          <TransactionDebugger />
 
           {/* VeChain Integration Component */}
           <VeChainIntegration />

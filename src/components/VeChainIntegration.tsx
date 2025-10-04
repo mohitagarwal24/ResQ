@@ -18,7 +18,8 @@ export const VeChainIntegration = () => {
     isTransactionPending,
     isTransactionModalOpen,
     closeTransactionModal,
-    error 
+    error,
+    handleTryAgain
   } = useContractTransactions();
   
   const { bounties, loading: bountiesLoading, refetch } = useContractBounties();
@@ -30,12 +31,16 @@ export const VeChainIntegration = () => {
     organizerName: 'Test Organizer',
     imageUrl: 'https://images.pexels.com/photos/2850287/pexels-photo-2850287.jpeg?auto=compress&cs=tinysrgb&w=800'
   });
+  
+  const [lastClauses] = useState<any[]>([]);
 
   const handleCreateTestBounty = async () => {
     try {
-      await createBounty(testBountyData);
-      // Refetch bounties after creation
-      setTimeout(() => refetch(), 2000);
+      const result = await createBounty(testBountyData);
+      if (result) {
+        // Refetch bounties after creation
+        setTimeout(() => refetch(), 2000);
+      }
     } catch (error) {
       console.error('Failed to create test bounty:', error);
     }
@@ -43,9 +48,11 @@ export const VeChainIntegration = () => {
 
   const handleTestDonation = async (bountyId: string) => {
     try {
-      await donate({ bountyId, amount: 1 });
-      // Refetch bounties after donation
-      setTimeout(() => refetch(), 2000);
+      const result = await donate({ bountyId, amount: 1 });
+      if (result) {
+        // Refetch bounties after donation
+        setTimeout(() => refetch(), 2000);
+      }
     } catch (error) {
       console.error('Failed to donate:', error);
     }
@@ -226,7 +233,9 @@ export const VeChainIntegration = () => {
         txReceipt={txReceipt}
         txError={error}
         onTryAgain={() => {
-          // Handle retry logic if needed
+          if (lastClauses.length > 0) {
+            handleTryAgain(lastClauses);
+          }
         }}
         uiConfig={{
           title: 'ResQ DAO Transaction',

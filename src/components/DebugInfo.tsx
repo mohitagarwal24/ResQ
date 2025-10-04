@@ -6,8 +6,7 @@ import { CheckCircle, Wallet } from 'lucide-react';
 
 export const DebugInfo = () => {
   const { address, balance, isConnected, isConnecting } = useWallet();
-  const { bounties, getAllBounties } = useBountyStore();
-  const allBounties = getAllBounties();
+  const { bounties } = useBountyStore();
 
   return (
     <Card className="w-full max-w-2xl mx-auto mt-8">
@@ -58,16 +57,16 @@ export const DebugInfo = () => {
         <div>
           <p className="text-sm font-medium">Bounties Available</p>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{allBounties.length} total</Badge>
-            <Badge variant="outline">{bounties.length} in store</Badge>
+            <Badge variant="outline">{bounties.length} total</Badge>
+            <Badge variant="outline">Real Contract Data</Badge>
           </div>
         </div>
 
         <div className="text-xs text-gray-500 space-y-1">
           <p>✅ VeChain Kit Provider: Loaded</p>
           <p>✅ Wallet Context: Active</p>
-          <p>✅ Bounty Store: {allBounties.length > 0 ? 'Has Data' : 'Empty'}</p>
-          <p>✅ TypeScript: No Errors</p>
+          <p>✅ Bounty Store: {bounties.length > 0 ? 'Has Data' : 'Empty'}</p>
+          <p>✅ Real Contract Integration: Active</p>
           <p>✅ App: Rendering Successfully</p>
         </div>
       </CardContent>

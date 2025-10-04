@@ -1,6 +1,8 @@
 import { toast } from 'sonner';
 import { CONTRACT_CONFIG, contractUtils } from '../config/contract';
 import { getContractFunction } from '../utils/contractInterface';
+// Using ethers.js compatible encoding for VeChain Kit
+import { Interface } from 'ethers';
 
 export interface CreateBountyParams {
   title: string;
@@ -28,6 +30,7 @@ export interface ContractTransactionResult {
 }
 
 class ContractService {
+
   // Create bounty transaction clauses
   createBountyTransaction(params: CreateBountyParams): any[] {
     const goalAmountWei = contractUtils.vetToWei(params.goal);
@@ -37,20 +40,25 @@ class ContractService {
       throw new Error('createBounty function not found in ABI');
     }
     
-    return [{
-      to: CONTRACT_CONFIG.address,
-      value: '0x0',
-      data: '0x', // Simplified for now - VeChain Kit will handle encoding
-      comment: `Create bounty: ${params.title} with goal of ${params.goal} VET`,
-      abi: createBountyABI,
-      params: [
+    // Encode function data using ethers Interface
+    const contractInterface = new Interface([createBountyABI]);
+    const functionData = contractInterface.encodeFunctionData(
+      'createBounty',
+      [
         params.title,
         params.description,
-        goalAmountWei,
+        goalAmountWei, // Keep as string - ethers handles BigInt conversion
         params.location,
         params.organizerName,
         params.imageUrl || ''
       ]
+    );
+    
+    return [{
+      to: CONTRACT_CONFIG.address,
+      value: '0x0',
+      data: functionData,
+      comment: `Create bounty: ${params.title} with goal of ${params.goal} VET (${goalAmountWei} Wei)`
     }];
   }
 
@@ -63,13 +71,18 @@ class ContractService {
       throw new Error('donate function not found in ABI');
     }
     
+    // Encode function data using ethers Interface
+    const contractInterface = new Interface([donateABI]);
+    const functionData = contractInterface.encodeFunctionData(
+      'donate',
+      [params.bountyId] // Keep as string - ethers handles conversion
+    );
+    
     return [{
       to: CONTRACT_CONFIG.address,
       value: `0x${BigInt(amountWei).toString(16)}`,
-      data: '0x', // Simplified for now
-      comment: `Donate ${params.amount} VET to bounty #${params.bountyId}`,
-      abi: donateABI,
-      params: [params.bountyId]
+      data: functionData,
+      comment: `Donate ${params.amount} VET to bounty #${params.bountyId}`
     }];
   }
 
@@ -81,13 +94,18 @@ class ContractService {
       throw new Error('submitProof function not found in ABI');
     }
     
+    // Encode function data using ethers Interface
+    const contractInterface = new Interface([submitProofABI]);
+    const functionData = contractInterface.encodeFunctionData(
+      'submitProof',
+      [params.bountyId, params.ipfsHash] // Keep bountyId as string
+    );
+    
     return [{
       to: CONTRACT_CONFIG.address,
       value: '0x0',
-      data: '0x', // Simplified for now
-      comment: `Submit proof for bounty #${params.bountyId}`,
-      abi: submitProofABI,
-      params: [params.bountyId, params.ipfsHash]
+      data: functionData,
+      comment: `Submit proof for bounty #${params.bountyId}`
     }];
   }
 
@@ -99,13 +117,18 @@ class ContractService {
       throw new Error('releaseFunds function not found in ABI');
     }
     
+    // Encode function data using ethers Interface
+    const contractInterface = new Interface([releaseFundsABI]);
+    const functionData = contractInterface.encodeFunctionData(
+      'releaseFunds',
+      [bountyId, verified] // Keep bountyId as string
+    );
+    
     return [{
       to: CONTRACT_CONFIG.address,
       value: '0x0',
-      data: '0x', // Simplified for now
-      comment: `Release funds for bounty #${bountyId}`,
-      abi: releaseFundsABI,
-      params: [bountyId, verified]
+      data: functionData,
+      comment: `Release funds for bounty #${bountyId} (${verified ? 'verified' : 'rejected'})`
     }];
   }
 

@@ -64,13 +64,18 @@ export const PostBountyPage = () => {
 
       // Add to local store for immediate UI update
       addBounty({
+        id: Date.now().toString(),
         title: formData.title,
         description: formData.description,
         goalAmount: goalAmount,
+        currentAmount: 0, // new bounty starts at 0
         location: formData.location,
         organizerAddress: address,
         organizerName: formData.organizerName,
-        imageUrl: formData.imageUrl || undefined
+        imageUrl: formData.imageUrl || undefined,
+        status: 'Open', // default when bounty is created
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
 
       if (status === 'success') {

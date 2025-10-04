@@ -11,7 +11,14 @@ interface BountyCardProps {
 }
 
 export const BountyCard = ({ bounty }: BountyCardProps) => {
-  const progress = (bounty.currentAmount / bounty.goalAmount) * 100;
+  // Add safety checks for bounty data
+  if (!bounty) {
+    return null;
+  }
+
+  const currentAmount = bounty.currentAmount ?? 0;
+  const goalAmount = bounty.goalAmount ?? 1;
+  const progress = (currentAmount / goalAmount) * 100;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -68,7 +75,7 @@ export const BountyCard = ({ bounty }: BountyCardProps) => {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Progress</span>
             <span className="font-semibold text-foreground">
-              {bounty.currentAmount.toLocaleString()} / {bounty.goalAmount.toLocaleString()} VET
+              {currentAmount.toLocaleString()} / {goalAmount.toLocaleString()} VET
             </span>
           </div>
           <Progress value={progress} className="h-2" />
