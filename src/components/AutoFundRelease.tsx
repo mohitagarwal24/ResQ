@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWallet } from '../contexts/WalletContext';
 import { useContractTransactions } from '../hooks/useContractTransactions';
 import { Bounty } from '../types/bounty';
@@ -13,38 +13,57 @@ import {
   TrendingUp,
   AlertTriangle,
   Loader2,
-  PartyPopper
+  PartyPopper,
+  Upload,
+  FileImage
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AutoFundReleaseProps {
   bounty: Bounty;
-  onFundRelease?: () => void;
+  onProofSubmitted?: () => void;
 }
 
-export const AutoFundRelease = ({ bounty, onFundRelease }: AutoFundReleaseProps) => {
+export const AutoFundRelease = ({ bounty, onProofSubmitted }: AutoFundReleaseProps) => {
   const { address } = useWallet();
-  const { releaseFunds, isTransactionPending } = useContractTransactions();
-  const [isReleasing, setIsReleasing] = useState(false);
+  const { submitProof, isTransactionPending } = useContractTransactions();
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
   const [, setShowCelebration] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const celebrationShownRef = useRef<Set<string>>(new Set());
 
   // Calculate progress
   const progress = (bounty.currentAmount / bounty.goalAmount) * 100;
   const isGoalReached = bounty.currentAmount >= bounty.goalAmount;
   const isOrganizer = address && address.toLowerCase() === bounty.organizerAddress.toLowerCase();
 
-  // Show celebration when goal is reached
+  // Show celebration when goal is reached (only once per bounty)
   useEffect(() => {
     if (isGoalReached && bounty.status === 'Open') {
-      setShowCelebration(true);
-      toast.success('🎉 Goal reached! Funds are ready for release!');
+      const celebrationKey = `${bounty.id}-goal-reached`;
+      
+      // Only show celebration if we haven't shown it for this bounty yet
+      if (!celebrationShownRef.current.has(celebrationKey)) {
+        setShowCelebration(true);
+        toast.success('🎉 Goal reached! Now submit proof of relief to release funds!');
+        celebrationShownRef.current.add(celebrationKey);
+      }
     }
-  }, [isGoalReached, bounty.status]);
+    
+    // Clear celebration flag if bounty status changes away from Open
+    if (bounty.status !== 'Open') {
+      const celebrationKey = `${bounty.id}-goal-reached`;
+      celebrationShownRef.current.delete(celebrationKey);
+    }
+  }, [isGoalReached, bounty.status, bounty.id]);
 
-  // Auto-release funds if goal is reached and bounty is still open
-  const handleAutoRelease = async () => {
-    if (!address || !isOrganizer) {
-      toast.error('Only the organizer can release funds');
+  // Handle proof submission when goal is reached
+  const handleProofSubmission = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !address || !isOrganizer) {
+      if (!address || !isOrganizer) {
+        toast.error('Only the organizer can submit proof');
+      }
       return;
     }
 
@@ -53,31 +72,38 @@ export const AutoFundRelease = ({ bounty, onFundRelease }: AutoFundReleaseProps)
       return;
     }
 
-    setIsReleasing(true);
+    setIsSubmittingProof(true);
 
     try {
-      console.log(`Auto-releasing funds for completed bounty ${bounty.id}...`);
+      console.log(`Submitting proof for completed bounty ${bounty.id}...`);
       
-      // Release funds with verified=true since goal was reached
-      await releaseFunds(bounty.id, true);
+      await submitProof({ bountyId: bounty.id, proofFile: file });
 
-      toast.success('🎉 Funds successfully released to organizer!');
+      toast.success('🎉 Proof submitted successfully! Awaiting verification...');
 
       // Call callback to refresh bounty data
-      if (onFundRelease) {
-        onFundRelease();
+      if (onProofSubmitted) {
+        onProofSubmitted();
       }
 
     } catch (error) {
-      console.error('Failed to release funds:', error);
-      toast.error('Failed to release funds');
+      console.error('Failed to submit proof:', error);
+      toast.error('Failed to submit proof');
     } finally {
-      setIsReleasing(false);
+      setIsSubmittingProof(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  // Don't show if bounty is already completed
-  if (bounty.status === 'Completed') {
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Don't show if bounty is already completed or proof is pending
+  if (bounty.status === 'Completed' || bounty.status === 'ProofPending') {
     return null;
   }
 
@@ -99,8 +125,8 @@ export const AutoFundRelease = ({ bounty, onFundRelease }: AutoFundReleaseProps)
         </CardTitle>
         <CardDescription>
           {isGoalReached 
-            ? 'The funding goal has been reached! Funds can now be released.'
-            : 'Track progress towards the funding goal. Funds will be auto-released when reached.'
+            ? 'The funding goal has been reached! Submit proof of relief to release funds.'
+            : 'Track progress towards the funding goal. Submit proof when goal is reached.'
           }
         </CardDescription>
       </CardHeader>
@@ -134,8 +160,8 @@ export const AutoFundRelease = ({ bounty, onFundRelease }: AutoFundReleaseProps)
             <AlertDescription className="text-green-800">
               <strong>Congratulations!</strong> The funding goal has been reached! 
               {isOrganizer 
-                ? ' You can now release the funds to complete this bounty.'
-                : ' The organizer can now release the funds.'
+                ? ' Please submit proof of relief to release the funds.'
+                : ' The organizer needs to submit proof of relief to release funds.'
               }
             </AlertDescription>
           </Alert>
@@ -174,27 +200,45 @@ export const AutoFundRelease = ({ bounty, onFundRelease }: AutoFundReleaseProps)
           </div>
         </div>
 
-        {/* Release Funds Button (for organizer when goal is reached) */}
+        {/* Submit Proof Button (for organizer when goal is reached) */}
         {isGoalReached && bounty.status === 'Open' && isOrganizer && (
-          <div className="pt-4">
-            <Button
-              onClick={handleAutoRelease}
-              disabled={isReleasing || isTransactionPending}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-              size="lg"
-            >
-              {isReleasing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Releasing Funds...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Release Funds ({bounty.currentAmount.toFixed(2)} VET)
-                </>
-              )}
-            </Button>
+          <div className="pt-4 space-y-3">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <FileImage className="h-4 w-4 text-amber-600" />
+                <span className="font-semibold text-amber-800">Submit Proof of Relief</span>
+              </div>
+              <p className="text-sm text-amber-700 mb-3">
+                Upload images or documents showing the relief work completed with the donated funds.
+              </p>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx"
+                onChange={handleProofSubmission}
+                className="hidden"
+              />
+              
+              <Button
+                onClick={handleFileButtonClick}
+                disabled={isSubmittingProof || isTransactionPending}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                size="lg"
+              >
+                {isSubmittingProof ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting Proof...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Submit Proof of Relief
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -203,8 +247,8 @@ export const AutoFundRelease = ({ bounty, onFundRelease }: AutoFundReleaseProps)
           <Alert className="border-blue-200 bg-blue-50">
             <AlertTriangle className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-blue-800">
-              The funding goal has been reached! The organizer can now release the funds 
-              to complete this relief effort.
+              The funding goal has been reached! The organizer needs to submit proof of relief 
+              before funds can be released.
             </AlertDescription>
           </Alert>
         )}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { contractReadService } from '../services/contractReadService';
+import { refreshService } from '../services/refreshService';
 import { Bounty } from '../types/bounty';
 
 // Hook for reading all bounties from the deployed contract using VeChain Thor API
@@ -31,27 +32,15 @@ export const useContractBounties = () => {
     }
   }, []);
 
-  // Auto-fetch on mount and when contract data changes
+  // Auto-fetch on mount and register with refresh service
   useEffect(() => {
     fetchBounties();
     
-    // Listen for contract data changes (after transactions) with debounce
-    let refreshTimeout: NodeJS.Timeout;
-    const handleDataChange = () => {
-      // Clear any existing timeout
-      clearTimeout(refreshTimeout);
-      // Debounce the refresh to avoid multiple rapid calls
-      refreshTimeout = setTimeout(() => {
-        console.log('Contract data changed, refreshing bounties...');
-        fetchBounties();
-      }, 1000); // Wait 1 second before refreshing
-    };
-    
-    window.addEventListener('contractDataChanged', handleDataChange);
+    // Register with centralized refresh service
+    refreshService.register('bounties', fetchBounties, 1); // High priority
     
     return () => {
-      window.removeEventListener('contractDataChanged', handleDataChange);
-      clearTimeout(refreshTimeout);
+      refreshService.unregister('bounties');
     };
   }, [fetchBounties]);
 
@@ -99,32 +88,19 @@ export const useContractBounty = (bountyId: string | null) => {
     }
   }, [bountyId]);
 
-  // Auto-fetch when bountyId changes and when contract data changes
+  // Auto-fetch when bountyId changes and register with refresh service
   useEffect(() => {
     if (bountyId) {
       fetchBounty();
+      
+      // Register with centralized refresh service using bounty-specific ID
+      const refreshId = `bounty-${bountyId}`;
+      refreshService.register(refreshId, fetchBounty, 2); // Medium priority
+      
+      return () => {
+        refreshService.unregister(refreshId);
+      };
     }
-    
-    // Listen for contract data changes (after transactions) with debounce
-    let refreshTimeout: NodeJS.Timeout;
-    const handleDataChange = () => {
-      if (bountyId) {
-        // Clear any existing timeout
-        clearTimeout(refreshTimeout);
-        // Debounce the refresh to avoid multiple rapid calls
-        refreshTimeout = setTimeout(() => {
-          console.log(`Contract data changed, refreshing bounty ${bountyId}...`);
-          fetchBounty();
-        }, 1000); // Wait 1 second before refreshing
-      }
-    };
-    
-    window.addEventListener('contractDataChanged', handleDataChange);
-    
-    return () => {
-      window.removeEventListener('contractDataChanged', handleDataChange);
-      clearTimeout(refreshTimeout);
-    };
   }, [fetchBounty, bountyId]);
 
   return {

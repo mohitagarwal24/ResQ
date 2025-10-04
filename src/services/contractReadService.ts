@@ -97,7 +97,8 @@ class ContractReadService {
           organizerAddress: bounty[6] || CONTRACT_CONFIG.address, // bounty[6] is organizer
           organizerName: bounty[7] || 'Unknown', // bounty[7] is organizerName
           imageUrl: bounty[8] || '', // bounty[8] is imageUrl
-          status: this.mapContractStatus(Number(bounty[10]) || 0), // bounty[10] is status (skip proofIpfsHash at [9])
+          proofIpfsHash: bounty[9] || '', // bounty[9] is proofIpfsHash
+          status: this.mapContractStatus(Number(bounty[10]) || 0), // bounty[10] is status
           createdAt: new Date(Number(bounty[11] || 0) * 1000), // bounty[11] is createdAt
           updatedAt: new Date(Number(bounty[12] || 0) * 1000) // bounty[12] is updatedAt
         };
@@ -144,7 +145,8 @@ class ContractReadService {
         organizerAddress: bounty[6] || CONTRACT_CONFIG.address, // bounty[6] is organizer
         organizerName: bounty[7] || 'Unknown', // bounty[7] is organizerName
         imageUrl: bounty[8] || '', // bounty[8] is imageUrl
-        status: this.mapContractStatus(Number(bounty[10]) || 0), // bounty[10] is status (skip proofIpfsHash at [9])
+        proofIpfsHash: bounty[9] || '', // bounty[9] is proofIpfsHash
+        status: this.mapContractStatus(Number(bounty[10]) || 0), // bounty[10] is status
         createdAt: new Date(Number(bounty[11] || 0) * 1000), // bounty[11] is createdAt
         updatedAt: new Date(Number(bounty[12] || 0) * 1000) // bounty[12] is updatedAt
       };

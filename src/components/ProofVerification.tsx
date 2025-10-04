@@ -6,15 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Alert, AlertDescription } from './ui/alert';
-import { 
-  Shield, 
-  CheckCircle, 
-  XCircle, 
-  ExternalLink, 
-  FileText,
-  AlertTriangle,
-  Loader2
-} from 'lucide-react';
+import { Shield, CheckCircle, XCircle, ExternalLink, FileText, AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProofVerificationProps {
@@ -73,9 +65,30 @@ export const ProofVerification = ({ bounty, onVerificationComplete }: ProofVerif
     return `https://gateway.pinata.cloud/ipfs/${cleanHash}`;
   };
 
-  // Extract proof hash from bounty (assuming it's stored in a proofIpfsHash field)
-  // For now, we'll use a placeholder since the exact field name might vary
-  const proofHash = "QmExampleHash"; // This should come from the bounty data
+  // Extract proof hash from bounty data
+  const proofHash = bounty.proofIpfsHash || '';
+  
+  // Debug logging to help track proof hash
+  if (import.meta.env.DEV) {
+    console.log(`[ProofVerification] Bounty ${bounty.id} proof hash:`, proofHash);
+  }
+
+  // Don't show verification UI if there's no proof hash
+  if (!proofHash) {
+    return (
+      <Card className="border-2 border-yellow-200 bg-yellow-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-yellow-600" />
+            No Proof Submitted Yet
+          </CardTitle>
+          <CardDescription>
+            Waiting for proof of relief work to be submitted...
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-2 border-orange-200 bg-orange-50">

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
 import { useContractBounty } from '../hooks/useContractRead';
@@ -14,7 +14,7 @@ import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { Separator } from '../components/ui/separator';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { MapPin, User, Calendar, ArrowLeft, Loader as Loader2, Upload, CircleCheck as CheckCircle2 } from 'lucide-react';
+import { MapPin, User, Calendar, ArrowLeft, Loader as Loader2, CircleCheck as CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const BountyDetailPage = () => {
@@ -22,7 +22,7 @@ export const BountyDetailPage = () => {
   const navigate = useNavigate();
   const { address } = useWallet();
   const { bounty, loading, error, refetch } = useContractBounty(id || null);
-  const { donate, submitProof } = useContractTransactions();
+  const { donate } = useContractTransactions();
 
   // Donations are now loaded from blockchain events via DonationHistory component
 
@@ -30,8 +30,6 @@ export const BountyDetailPage = () => {
 
   const [donationAmount, setDonationAmount] = useState('');
   const [isDonating, setIsDonating] = useState(false);
-  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (loading) {
     return (
@@ -113,23 +111,6 @@ export const BountyDetailPage = () => {
     }
   };
 
-  const handleProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !address) return;
-
-    setIsSubmittingProof(true);
-
-    try {
-      await submitProof({ bountyId: bounty.id, proofFile: file });
-      // Don't manually refetch - the contractDataChanged event will handle it
-      toast.success('Proof submitted successfully!');
-    } catch (error) {
-      console.error('Failed to submit proof:', error);
-      toast.error('Failed to submit proof');
-    } finally {
-      setIsSubmittingProof(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -213,7 +194,7 @@ export const BountyDetailPage = () => {
                       <Alert className="border-emerald-200 bg-emerald-50">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                         <AlertDescription className="text-emerald-800">
-                          Proof has been submitted and is awaiting verification.
+                          Proof has been submitted and Verified.
                           <div className="mt-2 text-xs font-mono break-all">
                             IPFS Hash: {bounty.proofIpfsHash}
                           </div>
@@ -234,7 +215,7 @@ export const BountyDetailPage = () => {
             {/* Auto Fund Release Component (when goal is reached) */}
             <AutoFundRelease 
               bounty={bounty} 
-              onFundRelease={refetch}
+              onProofSubmitted={refetch}
             />
 
             {/* Real Donation History from Blockchain */}
@@ -305,39 +286,7 @@ export const BountyDetailPage = () => {
                   </div>
                 )}
 
-                {isOrganizer && bounty.status === 'Open' && progress >= 100 && (
-                  <div className="space-y-4">
-                    <Alert className="border-blue-200 bg-blue-50">
-                      <AlertDescription className="text-blue-800 text-sm">
-                        Goal reached! Upload proof of relief delivery to release funds.
-                      </AlertDescription>
-                    </Alert>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handleProofUpload}
-                      className="hidden"
-                    />
-                    <Button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isSubmittingProof}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12"
-                    >
-                      {isSubmittingProof ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Submit Proof
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
+                {/* Proof submission is now handled by AutoFundRelease component */}
 
                 {bounty.status === 'ProofPending' && (
                   <Alert className="border-amber-200 bg-amber-50">

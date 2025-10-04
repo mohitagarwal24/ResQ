@@ -3,6 +3,7 @@ import { useWallet, useSendTransaction, useTransactionModal } from '@vechain/vec
 import { contractService } from '../services/contractService';
 import { ipfsService } from '../services/ipfsService';
 import { toast } from 'sonner';
+import { refreshService } from '../services/refreshService';
 
 export interface CreateBountyParams {
   title: string;
@@ -36,9 +37,11 @@ export const useContractTransactions = () => {
   } = useSendTransaction({
     signerAccountAddress: account?.address ?? '',
     onTxConfirmed: () => {
-      // Only emit data refresh event, let components handle their own success messages
-      console.log('Transaction confirmed, refreshing contract data...');
-      window.dispatchEvent(new CustomEvent('contractDataChanged'));
+      // Trigger centralized refresh instead of individual event listeners
+      if (import.meta.env.DEV) {
+        console.log('[DEBUG] Transaction confirmed, triggering centralized refresh');
+      }
+      refreshService.triggerRefresh();
     },
     onTxFailedOrCancelled: () => {
       console.log('Transaction failed or was cancelled');
@@ -129,6 +132,11 @@ export const useContractTransactions = () => {
     try {
       // Upload proof to IPFS
       const ipfsHash = await uploadToIPFS(params.proofFile);
+      
+      if (import.meta.env.DEV) {
+        console.log(`[submitProof] Uploaded to IPFS with hash:`, ipfsHash);
+        console.log(`[submitProof] Submitting proof for bounty:`, params.bountyId);
+      }
       
       // Get transaction clauses from contract service
       const clauses = contractService.submitProofTransaction({

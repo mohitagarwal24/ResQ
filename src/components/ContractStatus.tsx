@@ -1,17 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { contractReadService } from '../services/contractReadService';
-import { CONTRACT_CONFIG } from '../config/contract';
+import { refreshService } from '../services/refreshService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
-import { CheckCircle, XCircle, RefreshCw, Database, Loader2 } from 'lucide-react';
+import { CONTRACT_CONFIG } from '../config/contract';
+import { 
+  CheckCircle, 
+  XCircle, 
+  RefreshCw, 
+  Database,
+  Loader2
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
  * Contract Status Component
  * 
- * Shows the real-time status of contract connectivity and data
  */
 export const ContractStatus = () => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
@@ -20,7 +26,7 @@ export const ContractStatus = () => {
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const checkContractStatus = async () => {
+  const checkContractStatus = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
@@ -53,32 +59,29 @@ export const ContractStatus = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Check status on mount
   useEffect(() => {
     checkContractStatus();
   }, []);
 
-  // Listen for contract data changes
+  // Auto-refresh when contract data changes
   useEffect(() => {
-    const handleDataChange = () => {
-      console.log('Contract data changed, rechecking status...');
-      checkContractStatus();
-    };
+    checkContractStatus();
     
-    window.addEventListener('contractDataChanged', handleDataChange);
+    // Register with centralized refresh service
+    refreshService.register('contract-status', checkContractStatus, 5); //Lowest priority
     
     return () => {
-      window.removeEventListener('contractDataChanged', handleDataChange);
+      refreshService.unregister('contract-status');
     };
-  }, []);
+  }, [checkContractStatus]);
 
   const getStatusColor = () => {
     if (isConnected === null) return 'bg-gray-100 text-gray-700';
     return isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
   };
-
   const getStatusIcon = () => {
     if (isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
     if (isConnected === null) return <Database className="h-4 w-4" />;

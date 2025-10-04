@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { donationHistoryService, Donation } from '../services/donationHistoryService';
+import { refreshService } from '../services/refreshService';
 
 export const useDonationHistory = (bountyId: string | null) => {
   const [donations, setDonations] = useState<Donation[]>([]);
@@ -34,20 +35,16 @@ export const useDonationHistory = (bountyId: string | null) => {
     fetchDonations();
   }, [fetchDonations]);
 
-  // Listen for contract data changes (after transactions)
+  // Register with centralized refresh service
   useEffect(() => {
-    const handleDataChange = () => {
-      if (bountyId) {
-        console.log(`Contract data changed, refreshing donations for bounty ${bountyId}...`);
-        fetchDonations();
-      }
-    };
-
-    window.addEventListener('contractDataChanged', handleDataChange);
-
-    return () => {
-      window.removeEventListener('contractDataChanged', handleDataChange);
-    };
+    if (bountyId) {
+      const refreshId = `donations-${bountyId}`;
+      refreshService.register(refreshId, fetchDonations, 3); // Lower priority
+      
+      return () => {
+        refreshService.unregister(refreshId);
+      };
+    }
   }, [bountyId, fetchDonations]);
 
   return {
@@ -97,19 +94,16 @@ export const useDonationStats = (bountyId: string | null) => {
     fetchStats();
   }, [fetchStats]);
 
-  // Listen for contract data changes
+  // Register with centralized refresh service
   useEffect(() => {
-    const handleDataChange = () => {
-      if (bountyId) {
-        fetchStats();
-      }
-    };
-
-    window.addEventListener('contractDataChanged', handleDataChange);
-
-    return () => {
-      window.removeEventListener('contractDataChanged', handleDataChange);
-    };
+    if (bountyId) {
+      const refreshId = `donation-stats-${bountyId}`;
+      refreshService.register(refreshId, fetchStats, 4); // Lowest priority
+      
+      return () => {
+        refreshService.unregister(refreshId);
+      };
+    }
   }, [bountyId, fetchStats]);
 
   return {
