@@ -1,3 +1,18 @@
+## Setup
+
+### Prerequisites
+- Node 18+
+- Git
+- VeChain testnet wallet (for deployment)
+
+### Install Dependencies
+```bash
+npm i
+```
+
+### Environment Variables
+Create `.env` in the project root:
+```bash
 # VeChain Network
 VITE_THOR_NODE_URL=https://testnet.vechain.org
 
@@ -17,3 +32,13 @@ VITE_PINATA_JWT=your-pinata-jwt-token
 VITE_DEPLOYER_PRIVATE_KEY=0x...
 VITE_MNEMONIC=word1 word2 ... word12
 VITE_DERIVATION_COUNT=2
+```
+
+### Run Development Server
+```bash
+npm run dev
+```
+
+Open the app at `http://localhost:5173`.
+
+
